@@ -1,13 +1,15 @@
 package ru.ach4god.wirelessandroidmouse.MouseServer;
 
 import android.app.IntentService;
-import android.content.Intent;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,7 +24,6 @@ import ru.ach4god.wirelessandroidmouse.common.Preference;
  * helper methods.
  */
 public class MouseWebSocketIntentService extends IntentService {
-    // IntentService can perform, e.g. ACTION_FETCH_NEW_ITEMS
     private static final String TAG = "MouseJobService";
     private static final String ACTION_START_SERVICE = "ru.ach4god.wirelessandroidmouse.MouseServer.action.START_SERVICE";
     private static final String ACTION_STOP_SERVICE = "ru.ach4god.wirelessandroidmouse.MouseServer.action.STOP_SERVICE";
@@ -32,7 +33,6 @@ public class MouseWebSocketIntentService extends IntentService {
     public static String ACTION_CLIENT_CONNECTED = "ru.ach4god.wirelessandroidmouse.MouseServer.ON_CLIENT_CONNECTED";
     public static String ACTION_CLIENT_DISCONNECTED = "ru.ach4god.wirelessandroidmouse.MouseServer.ON_CLIENT_DISCONNECTED";
     public static String ACTION_ERROR = "ru.ach4god.wirelessandroidmouse.MouseServer.ON_ERROR";
-
     WebSocketServer wsServer;
 
     public MouseWebSocketIntentService() {
@@ -83,6 +83,12 @@ public class MouseWebSocketIntentService extends IntentService {
         }
     }
 
+    // IntentService can perform, e.g. ACTION_FETCH_NEW_ITEMS
+    public static enum ACTIONS {
+        MOVE,
+        CLICK
+    }
+
     private class MouseWebSocket extends WebSocketServer {
 
         public MouseWebSocket(InetSocketAddress address) {
@@ -105,6 +111,25 @@ public class MouseWebSocketIntentService extends IntentService {
         @Override
         public void onMessage(WebSocket conn, String message) {
             Log.d(TAG, "onMessage: " + message);
+            JSONObject json = handleJson(message);
+            try {
+                if (json.has("action")) {
+                    String action = null;
+                    action = json.getString("action");
+                    if ("MOVE".equals(action)) {
+                        int deltaX = json.getInt("deltaX");
+                        int deltaY = json.getInt("deltaY");
+                        Intent intent = new Intent(ACTION_MOUSE_EVENT);
+                        intent.putExtra("deltaX", deltaX);
+                        intent.putExtra("deltaY", deltaY);
+                        intent.putExtra("action", action);
+                        sendBroadcast(intent);
+                    }
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+                Log.e(TAG, e.getMessage());
+            }
         }
 
         @Override
@@ -121,6 +146,16 @@ public class MouseWebSocketIntentService extends IntentService {
             Intent data = new Intent(ACTION_START);
             data.putExtra("address", getAddress().toString());
             sendBroadcast(data);
+        }
+
+        private JSONObject handleJson(String jsonString) {
+            try {
+                return new JSONObject(jsonString);
+            } catch (JSONException e) {
+                e.printStackTrace();
+                Log.e(TAG, "invalid Json");
+                return new JSONObject();
+            }
         }
     }
 

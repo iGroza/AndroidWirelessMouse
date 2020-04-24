@@ -1,11 +1,11 @@
 package ru.ach4god.wirelessandroidmouse.MouseServer;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -26,7 +26,7 @@ public class MouseServerPresenter extends PresentorBase<MouseServerContract.View
     @Override
     public void startServer() {
         Log.d(TAG, "StartServer Service");
-        MouseWebSocketIntentService.startWebSocketServer(getApplicationContext(), Utils.getIPAddress(true), Preference.DEFAULT_PORT);
+        MouseWebSocketIntentService.startWebSocketServer(getApplicationContext(), Utils.getIPAddress(getApplicationContext()), Preference.DEFAULT_PORT);
     }
 
     @Override
@@ -83,6 +83,8 @@ public class MouseServerPresenter extends PresentorBase<MouseServerContract.View
             @Override
             public void onNext(@io.reactivex.annotations.NonNull Intent intent) {
                 String action = intent.getAction();
+                Log.d(TAG,action);
+                Log.d(TAG,intent.toString());
                 if (MouseWebSocketIntentService.ACTION_CLIENT_CONNECTED.equals(action)) {
 
                 } else if (MouseWebSocketIntentService.ACTION_CLIENT_DISCONNECTED.equals(action)) {
@@ -94,8 +96,17 @@ public class MouseServerPresenter extends PresentorBase<MouseServerContract.View
                 } else if (MouseWebSocketIntentService.ACTION_START.equals(action)) {
                     getView().showStatus("STARTED");
                     getView().showAddress(" ws"+intent.getStringExtra("address"));
+                    FloatingMouseManager
+                            .getFloatingMouseManager((Activity) getView())
+                            .show();
                 } else if (MouseWebSocketIntentService.ACTION_MOUSE_EVENT.equals(action)) {
-
+                    int deltaX = intent.getIntExtra("deltaX", 0);
+                    int deltaY = intent.getIntExtra("deltaY", 0);
+                    String mouseAction = intent.getStringExtra("action");
+                    Log.d(TAG, action + " : " +deltaX + " | " + deltaY);
+                    FloatingMouseManager
+                            .getFloatingMouseManager((Activity) getView())
+                            .move(deltaX, deltaY);
                 }
             }
 
