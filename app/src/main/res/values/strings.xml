@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Wireless android mouse</string>
+    <string name="START_SERRVER">Start server</string>
+    <string name="CONNECT_TO_SERVER">Connect to server</string>
+    <string name="stop_server_btn">Stop server</string>
+    <string name="status">status:</string>
+    <string name="address">address:</string>
+</resources>
